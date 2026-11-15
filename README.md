@@ -2,13 +2,13 @@
 
 A Claude Code mod for designers who want to understand the code Claude writes.
 
-It adds a side panel, **Explain This Code**, that maps every file Claude writes or edits into three zoom levels:
+It adds a side panel, **Explain This Code**, that shows every file Claude writes or edits, split into cards drawn with Claude Code's own code view, at three zoom levels:
 
-1. **File**: what the whole file does
-2. **Blocks**: each import group, component, function, type, style rule or JSON key, with its line range
-3. **Terms**: the words and symbols a designer is likely to trip on (`useState`, `=>`, `var(--…)`, `@media`…)
+1. **File**: the **Explain file** button asks what the whole file does
+2. **Blocks**: each import group, component, function, type, style rule or JSON key is a card with its code and line numbers. Click its name to ask about it.
+3. **Terms**: under each block, the words and symbols a designer is likely to trip on (`useState`, `=>`, `var(--…)`, `@media`…). Click one to ask what it means on that line.
 
-Click any of them and the question goes to **your own Claude**, which knows why it wrote the code, for example:
+Each click sends the question to **your own Claude**, which knows why it wrote the code, for example:
 
 > Explain the function `handleSubmit` (lines 14–16 of src/Form.tsx) for a designer: what it does and why you wrote it this way.
 
@@ -37,7 +37,8 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 ## Use
 
 - The panel opens at the start of each session. To open it yourself, type `/explain`.
-- When Claude writes or edits a file, the file appears in the panel. The last 20 files are kept.
+- When Claude writes or edits a file, the file appears in the panel. Switch between the last 10 files with the dropdown at the top.
+- Files over 500 lines show their first 500 lines.
 - `/explain path/to/file` maps any file, not just ones Claude wrote.
 
 ## What it understands

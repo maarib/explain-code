@@ -195,80 +195,99 @@ function htmlBlocks(lines: string[]): Block[] {
 }
 
 // Words worth a click, per language: kept to what reads as jargon to a designer.
+// Each is found where it appears in a line, so the code view can make it a link.
 const TERMS: Record<Lang, { term: string; re: RegExp }[]> = {
   js: [
-    { term: 'import', re: /\bimport\b/ },
-    { term: 'export', re: /\bexport\b/ },
-    { term: 'props', re: /\bprops\b|\(\s*\{[^}]*\}\s*[:)]/ },
-    { term: 'useState', re: /\buseState\b/ },
-    { term: 'useEffect', re: /\buseEffect\b/ },
-    { term: 'useRef', re: /\buseRef\b/ },
-    { term: 'useMemo', re: /\buseMemo\b/ },
-    { term: '=>', re: /=>/ },
-    { term: 'async / await', re: /\bawait\b/ },
-    { term: 'Promise', re: /\bPromise\b/ },
-    { term: 'class', re: /\bclass\s+[A-Z]/ },
-    { term: 'extends', re: /\bextends\b/ },
-    { term: 'interface', re: /\binterface\b/ },
-    { term: 'type', re: /^\s*(export\s+)?type\s/m },
-    { term: '.map()', re: /\.map\(/ },
-    { term: '?.', re: /\?\./ },
-    { term: '??', re: /\?\?/ },
-    { term: '...', re: /\.\.\.[A-Za-z_$]/ },
-    { term: 'null / undefined', re: /\b(null|undefined)\b/ },
-    { term: 'className', re: /\bclassName\b/ },
-    { term: 'key', re: /\bkey=\{/ },
-    { term: 'fetch', re: /\bfetch\(/ },
-    { term: 'try / catch', re: /\btry\s*\{/ },
+    { term: 'import', re: /\bimport\b/g },
+    { term: 'export', re: /\bexport\b/g },
+    { term: 'props', re: /\bprops\b|\w+Props\b/g },
+    { term: 'useState', re: /\buseState\b/g },
+    { term: 'useEffect', re: /\buseEffect\b/g },
+    { term: 'useRef', re: /\buseRef\b/g },
+    { term: 'useMemo', re: /\buseMemo\b/g },
+    { term: '=>', re: /=>/g },
+    { term: 'async / await', re: /\b(async|await)\b/g },
+    { term: 'Promise', re: /\bPromise\b/g },
+    { term: 'class', re: /\bclass\b(?=\s+[A-Z])/g },
+    { term: 'extends', re: /\bextends\b/g },
+    { term: 'interface', re: /\binterface\b/g },
+    { term: 'type', re: /\btype\b(?=\s+[A-Z])/g },
+    { term: '.map()', re: /\.map\b/g },
+    { term: '?.', re: /\?\./g },
+    { term: '??', re: /\?\?/g },
+    { term: '...', re: /\.\.\.(?=[A-Za-z_$])/g },
+    { term: 'null / undefined', re: /\b(null|undefined)\b/g },
+    { term: 'className', re: /\bclassName\b/g },
+    { term: 'key', re: /\bkey(?==)/g },
+    { term: 'aria-', re: /\baria-[\w-]+/g },
+    { term: 'fetch', re: /\bfetch\b/g },
+    { term: 'try / catch', re: /\b(try|catch)\b/g },
+    { term: '&&', re: /&&/g },
+    { term: '? :', re: /\s\?\s/g },
   ],
   css: [
-    { term: 'var(--…)', re: /var\(--/ },
-    { term: '--custom property', re: /^\s*--[\w-]+\s*:/m },
-    { term: 'display: flex', re: /display\s*:\s*(inline-)?flex/ },
-    { term: 'display: grid', re: /display\s*:\s*grid/ },
-    { term: '@media', re: /@media/ },
-    { term: ':hover', re: /:hover/ },
-    { term: '::before / ::after', re: /::?(before|after)/ },
-    { term: 'rem', re: /\d(\.\d+)?rem\b/ },
-    { term: 'z-index', re: /z-index/ },
-    { term: 'position: absolute', re: /position\s*:\s*absolute/ },
-    { term: 'transition', re: /\btransition\b/ },
-    { term: '@keyframes', re: /@keyframes/ },
-    { term: '!important', re: /!important/ },
-    { term: 'clamp()', re: /clamp\(/ },
+    { term: 'var(--…)', re: /var\(--[\w-]+\)/g },
+    { term: '--custom property', re: /--[\w-]+(?=\s*:)/g },
+    { term: 'display: flex', re: /display\s*:\s*(inline-)?flex\b/g },
+    { term: 'display: grid', re: /display\s*:\s*grid\b/g },
+    { term: '@media', re: /@media/g },
+    { term: ':hover', re: /:hover\b/g },
+    { term: ':disabled', re: /:disabled\b/g },
+    { term: '::before / ::after', re: /::?(before|after)\b/g },
+    { term: 'rem', re: /\d(\.\d+)?rem\b/g },
+    { term: 'z-index', re: /z-index/g },
+    { term: 'position', re: /position\s*:\s*(absolute|relative|fixed|sticky)/g },
+    { term: 'transition', re: /\btransition\b/g },
+    { term: 'transform', re: /\btransform\b/g },
+    { term: '@keyframes', re: /@keyframes/g },
+    { term: '!important', re: /!important/g },
+    { term: 'calc()', re: /calc\(/g },
+    { term: 'clamp()', re: /clamp\(/g },
   ],
   json: [
-    { term: '{ } object', re: /\{/ },
-    { term: '[ ] array', re: /\[/ },
-    { term: 'true / false', re: /\b(true|false)\b/ },
-    { term: 'null', re: /\bnull\b/ },
-    { term: '"$ref" / alias', re: /\$ref|\{[a-z]+\.[a-z.]+\}/i },
+    { term: 'true / false', re: /\b(true|false)\b/g },
+    { term: 'null', re: /\bnull\b/g },
+    { term: '"$ref" / alias', re: /"\$ref"|\{[a-z]+\.[a-z.]+\}/gi },
   ],
   python: [
-    { term: 'def', re: /\bdef\b/ },
-    { term: 'class', re: /\bclass\b/ },
-    { term: 'self', re: /\bself\b/ },
-    { term: 'import', re: /\bimport\b/ },
-    { term: 'None', re: /\bNone\b/ },
-    { term: '@decorator', re: /^\s*@\w/m },
-    { term: 'for … in', re: /\bfor\b.+\bin\b/ },
-    { term: 'dict', re: /\{[^}]*:/ },
+    { term: 'def', re: /\bdef\b/g },
+    { term: 'class', re: /\bclass\b/g },
+    { term: 'self', re: /\bself\b/g },
+    { term: 'import', re: /\bimport\b/g },
+    { term: 'None', re: /\bNone\b/g },
+    { term: '@decorator', re: /^\s*@\w+/g },
+    { term: 'return', re: /\breturn\b/g },
   ],
   html: [
-    { term: '<div>', re: /<div\b/ },
-    { term: 'class=', re: /\bclass=/ },
-    { term: 'id=', re: /\bid=/ },
-    { term: 'aria-', re: /\baria-/ },
-    { term: '<script>', re: /<script\b/ },
-    { term: '<link>', re: /<link\b/ },
-    { term: '<meta>', re: /<meta\b/ },
+    { term: '<div>', re: /<\/?div\b/g },
+    { term: 'class=', re: /\bclass=/g },
+    { term: 'id=', re: /\bid=/g },
+    { term: 'aria-', re: /\baria-[\w-]+/g },
+    { term: '<script>', re: /<\/?script\b/g },
+    { term: '<link>', re: /<link\b/g },
+    { term: '<meta>', re: /<meta\b/g },
   ],
   other: [],
 }
 
+// The terms used in some lines of a file, each with the first line using it.
+export function termsIn(lines: string[], firstLine: number, lang: Lang): { term: string; line: number }[] {
+  const found: { term: string; line: number }[] = []
+  for (const t of TERMS[lang]) {
+    const re = new RegExp(t.re.source, t.re.flags.replace('g', ''))
+    const at = lines.findIndex(l => re.test(l))
+    if (at >= 0) found.push({ term: t.term, line: firstLine + at })
+  }
+  return found.sort((a, b) => a.line - b.line)
+}
+
+// Files longer than this show their first lines only, to keep the panel quick.
+export const MAX_LINES = 500
+
 export function mapFile(path: string, text: string): FileMap {
   const lang = langOf(path)
-  const lines = text.split('\n')
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop()
   const blocks =
     lang === 'js'
       ? jsBlocks(lines)
@@ -281,6 +300,15 @@ export function mapFile(path: string, text: string): FileMap {
             : lang === 'html'
               ? htmlBlocks(lines)
               : []
-  const terms = TERMS[lang].filter(t => t.re.test(text)).map(t => t.term).slice(0, 10)
-  return { path, lang, lines: lines.length, blocks: blocks.slice(0, 60), terms }
+  const terms = TERMS[lang]
+    .filter(t => new RegExp(t.re.source, t.re.flags.replace('g', '')).test(text))
+    .map(t => t.term)
+  return {
+    path,
+    lang,
+    lines: lines.length,
+    code: lines.slice(0, MAX_LINES),
+    blocks: blocks.filter(b => b.start <= MAX_LINES).slice(0, 80),
+    terms,
+  }
 }

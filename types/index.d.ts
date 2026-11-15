@@ -6,6 +6,8 @@ export type FileMap = {
   path: string
   lang: 'js' | 'css' | 'json' | 'python' | 'html' | 'other'
   lines: number
+  // The file's lines, as many as the panel shows.
+  code: string[]
   blocks: Block[]
   terms: string[]
 }

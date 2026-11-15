@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { mapFile } from './parse'
+import { mapFile, termsIn } from './parse'
 
 const FORM = `import { useState } from 'react'
 import {
@@ -46,6 +46,15 @@ test('the parser finds the blocks and terms of a TSX file', () => {
   expect(map.terms).toContain('async / await')
 })
 
+test('each block lists its terms with the first line using them', () => {
+  const lines = FORM.split('\n').slice(8, 12)
+  expect(termsIn(lines, 9, 'js')).toEqual([
+    { term: 'export', line: 9 },
+    { term: 'props', line: 9 },
+    { term: 'useState', line: 10 },
+  ])
+})
+
 test('the parser reads CSS and JSON', () => {
   const css = mapFile('a.css', ':root {\n  --brand: #f00;\n}\n\n.button:hover {\n  color: var(--brand);\n}\n')
   expect(css.blocks.map(b => `${b.name}:${b.kind}`)).toEqual([':root:tokens', '.button:hover:style'])
@@ -70,18 +79,21 @@ test('a file Claude writes shows in the panel, and a click asks Claude', async (
 
   for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
-    expect((await ui.find({ key: 'whole-file' }))?.text).toContain('src/Form.tsx')
-    expect((await ui.find({ key: 'block:14' }))?.text).toContain('handleSubmit')
+    expect((await ui.find({ key: 'whole-file' }))?.text).toBe('Explain file')
+    expect(await ui.find({ type: 'Text', text: /^Form\.tsx$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Code' })).toBeDefined()
+    expect((await ui.find({ key: 'block:14' }))?.text).toBe('handleSubmit')
+    expect((await ui.find({ key: 'term:9:useState' }))?.text).toBe('useState')
     await ui.unmount()
   }
 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'block:14' })
-  await ui.press({ key: 'term:useState' })
+  await ui.press({ key: 'term:9:useState' })
   await ui.unmount()
 
   expect(asked[0]).toContain('`handleSubmit` (lines 14–16 of src/Form.tsx)')
-  expect(asked[1]).toContain('what does `useState` mean')
+  expect(asked[1]).toContain("line 10 (`const [name, setName] = useState('')`): what does `useState` mean here?")
 })
 
 test('the style note joins the system prompt', async ($, on) => {
