@@ -312,30 +312,3 @@ export function mapFile(path: string, text: string): FileMap {
     terms,
   }
 }
-
-// A reply cut into its prose and its fenced code blocks, in order.
-export type ReplyPart = { prose: string } | { code: string; lang: string }
-
-export function splitFences(text: string): ReplyPart[] {
-  const parts: ReplyPart[] = []
-  const fence = /^([ \t]*)(`{3,}|~{3,})[ \t]*([\w+#.-]*)[^\n]*\n([\s\S]*?)\n\1\2[ \t]*$/gm
-  let pos = 0
-  for (const m of text.matchAll(fence)) {
-    const at = m.index ?? 0
-    if (at > pos) parts.push({ prose: text.slice(pos, at) })
-    parts.push({ code: m[4] ?? '', lang: (m[3] ?? '').toLowerCase() })
-    pos = at + m[0].length
-  }
-  if (pos < text.length) parts.push({ prose: text.slice(pos) })
-  return parts.filter(p => !('prose' in p) || p.prose.trim() !== '')
-}
-
-// A file name for a fence's language, so the parser and the code view know it.
-export function pathForFence(lang: string): string {
-  const ext: Record<string, string> = {
-    typescript: 'ts', ts: 'ts', tsx: 'tsx', javascript: 'js', js: 'js', jsx: 'jsx', mjs: 'js',
-    css: 'css', scss: 'scss', less: 'less', json: 'json', jsonc: 'json',
-    python: 'py', py: 'py', html: 'html', htm: 'html', vue: 'vue', svelte: 'svelte',
-  }
-  return `snippet.${ext[lang] ?? (lang || 'txt')}`
-}
