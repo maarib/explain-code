@@ -2,10 +2,12 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Block, FileMap } from '../types'
-import { mapFile, termsIn } from './parse'
+import { mapFile, pathForFence, splitFences, termsIn } from './parse'
 
 const PANE = 'explain-code'
 const TITLE = 'Explain This Code'
+// A see-through grey that reads on light and dark backgrounds alike.
+const TINT = '#8080801f'
 
 // Change the tag when FileMap's fields change: values stored by an earlier
 // version are then read as empty instead of in the wrong shape.
@@ -90,6 +92,52 @@ export const register: Register = on => {
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
     return { sections: [...composed.sections.filter(s => s.id !== STYLE.id), STYLE] }
+  })
+
+  // Code blocks in Claude's replies: the block's border lights up as the
+  // pointer passes over it, and each function or component inside it is tinted.
+  on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
+    if (e.surface === 'terminal' || e.props.isSummary || !/(^|\n)[ \t]*(```|~~~)/.test(e.props.text)) return next(e)
+    const parts = splitFences(e.props.text)
+    if (!parts.some(p => 'code' in p)) return next(e)
+    const { Box, Markdown, Code } = $.ui.resolve(e)
+
+    const fence = (code: string, lang: string, i: number) => {
+      const path = pathForFence(lang)
+      const map = mapFile(path, code)
+      const card = { borderStyle: 'round', borderDimColor: true, paddingX: 1, hover: { borderColor: 'claude', borderDimColor: false } } as const
+      if (map.blocks.length === 0 || map.lines > map.code.length) {
+        return (
+          <Box key={`fence:${i}`} flexDirection="column" {...card}>
+            <Code source={code} path={path} />
+          </Box>
+        )
+      }
+      const pieces = []
+      let n = 1
+      for (const b of map.blocks) {
+        if (b.start < n) continue
+        if (b.start > n) pieces.push(<Code source={map.code.slice(n - 1, b.start - 1).join('\n')} path={path} />)
+        pieces.push(
+          <Box key={`fence:${i}:${b.start}`} hover={{ backgroundColor: TINT }}>
+            <Code source={map.code.slice(b.start - 1, b.end).join('\n')} path={path} />
+          </Box>,
+        )
+        n = b.end + 1
+      }
+      if (n <= map.code.length) pieces.push(<Code source={map.code.slice(n - 1).join('\n')} path={path} />)
+      return (
+        <Box key={`fence:${i}`} flexDirection="column" {...card}>
+          {pieces}
+        </Box>
+      )
+    }
+
+    return (
+      <Box flexDirection="column" rowGap={1}>
+        {parts.map((p, i) => ('prose' in p ? <Markdown text={p.prose.trim()} /> : fence(p.code, p.lang, i)))}
+      </Box>
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

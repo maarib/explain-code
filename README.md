@@ -41,6 +41,10 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 - Files over 500 lines show their first 500 lines.
 - `/explain path/to/file` maps any file, not just ones Claude wrote.
 
+## Hover highlighting in chat
+
+Code blocks in Claude's replies light up as you move over them: the block's border turns Claude's orange, and each function, component, type or style rule inside it gets a soft tint, so you can see where one ends and the next begins. The reply is redrawn with Claude Code's own markdown and code views. Replies without code, and the terminal, keep the app's normal drawing.
+
 ## What it understands
 
 Block-finding works for JavaScript and TypeScript (including React), CSS, SCSS and Less, JSON, Python, and the main HTML sections. For other files you can still ask about the whole file. Only top-level blocks are listed, so methods inside a class don't get their own rows yet.

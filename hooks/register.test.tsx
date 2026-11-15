@@ -101,3 +101,33 @@ test('the style note joins the system prompt', async ($, on) => {
   const out = await $.prompt.compose({ model: 'm', promptModel: 'm', surfaces: ['desktop'], tools: [], outputStyle: null, traits: [] })
   expect(out.sections.map(s => s.id)).toEqual(['core', 'explain-code:style'])
 })
+
+const REPLY = (text: string, surface: 'desktop' | 'terminal' = 'desktop') =>
+  ({ plugin: 'explain-code', component: 'AssistantMessage', requestId: 'm1', surface, props: { text, isFirstOfReply: true } }) as const
+
+test('a code block in a reply gets a hover card, its functions a hover tint', async ($, on) => {
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
+  const text = 'Here is the form:\n\n```tsx\n' + FORM.trimEnd() + '\n```\n\nThat is all.'
+  const ui = await $.ui.mount(REPLY(text))
+  expect(await ui.find({ key: 'fence:1' })).toBeDefined()
+  expect(await ui.find({ key: 'fence:1:9' })).toBeDefined() // the Form component
+  expect(await ui.find({ key: 'fence:1:14' })).toBeDefined() // handleSubmit
+  expect(await ui.find({ type: 'Markdown' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /engine/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('replies without code, and the terminal, keep the app drawing', async ($, on) => {
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
+  for (const reply of [REPLY('No code here.'), REPLY('```ts\nconst a = 1\n```', 'terminal')]) {
+    const ui = await $.ui.mount(reply)
+    expect((await ui.find({ type: 'Text' }))?.text).toBe('engine')
+    await ui.unmount()
+  }
+})
