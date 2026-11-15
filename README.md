@@ -41,6 +41,14 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 - Files over 500 lines show their first 500 lines.
 - `/explain path/to/file` maps any file, not just ones Claude wrote.
 
+## Try it
+
+The `examples/` folder has a small product card to explore: a React component (`ProductCard.tsx`) and its design tokens and styles (`tokens.css`). Copy them into your project, or point the panel at them directly:
+
+```
+/explain examples/ProductCard.tsx
+```
+
 ## What it understands
 
 Block-finding works for JavaScript and TypeScript (including React), CSS, SCSS and Less, JSON, Python, and the main HTML sections. For other files you can still ask about the whole file. Only top-level blocks are listed, so methods inside a class don't get their own rows yet.
